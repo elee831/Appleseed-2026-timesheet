@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appleseed Hours</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef2f8; --surface:#ffffff; --ink:#14213d; --muted:#6b7689; --line:#e3e8f1;
+    --cobalt:#2b59e0; --cobalt-dark:#1f43ad; --sun:#ffb020; --sun-deep:#e8920a;
+    --sun-tint:#fff6e6; --sun-line:#ffe3ab; --green:#0fa968; --danger:#e0492b;
+    --radius:14px; --shadow:0 1px 2px rgba(20,33,61,.04), 0 8px 24px rgba(20,33,61,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;padding:28px 18px 80px}
+  .wrap{max-width:760px;margin:0 auto}
+  .mono{font-family:'Space Mono',monospace}
+
+  header{margin-bottom:20px}
+  .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--cobalt);font-weight:600;margin:0 0 6px}
+  h1{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(30px,6vw,46px);margin:0;line-height:1.02;letter-spacing:-.02em}
+  .tally{margin-top:18px;background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap;border-top:3px solid var(--sun)}
+  .tally .big{display:flex;flex-direction:column;gap:2px}
+  .tally .big .num{font-family:'Space Mono',monospace;font-weight:700;font-size:clamp(38px,9vw,60px);line-height:1;letter-spacing:-.01em}
+  .tally .big .num .unit{font-size:.4em;color:var(--sun-deep);margin-left:6px}
+  .tally .big .lbl{font-size:13px;color:var(--muted);font-weight:500}
+  .chips{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto;align-self:center}
+  .chip{background:#f3f6fc;border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:84px}
+  .chip .v{font-family:'Space Mono',monospace;font-weight:700;font-size:20px;display:block}
+  .chip .k{font-size:11px;color:var(--muted);letter-spacing:.03em}
+  .chip.week .v{color:var(--green)}
+
+  .calcard{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 18px 20px;margin-top:20px}
+  .cal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .cal-nav{display:flex;align-items:center;gap:10px}
+  .cal-nav h2{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:21px;margin:0;min-width:165px;text-align:center}
+  .navbtn{background:#f3f6fc;border:1.5px solid var(--line);color:var(--ink);width:36px;height:36px;border-radius:9px;font-size:18px;line-height:1;cursor:pointer}
+  .navbtn:hover{border-color:var(--cobalt);color:var(--cobalt)}
+  .cal-meta{display:flex;align-items:center;gap:12px}
+  .month-total{font-size:13px;color:var(--muted)}
+  .month-total span{font-family:'Space Mono',monospace;font-weight:700;color:var(--sun-deep);font-size:15px}
+  .cal-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
+  .cal-dow div{text-align:center;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .cell{background:#fafbfe;border:1.5px solid var(--line);border-radius:10px;min-height:74px;padding:7px 8px;display:flex;flex-direction:column;text-align:left;cursor:pointer;transition:border-color .12s,background .12s;font-family:inherit}
+  .cell:hover:not(.blank){border-color:var(--cobalt);background:#fff}
+  .cell .n{font-weight:600;font-size:13px;color:var(--ink)}
+  .cell.blank{background:transparent;border-color:transparent;cursor:default}
+  .cell.worked{background:var(--sun-tint);border-color:var(--sun-line)}
+  .cell.worked .n{color:var(--sun-deep)}
+  .cell .h{font-family:'Space Mono',monospace;font-weight:700;font-size:14px;color:var(--sun-deep);margin-top:auto}
+  .cell .h small{font-size:10px;font-weight:400}
+  .cell.today{box-shadow:inset 0 0 0 2px var(--cobalt)}
+  .cell.today .n{color:var(--cobalt)}
+  .cal-hint{font-size:12.5px;color:var(--muted);text-align:center;margin-top:14px}
+  .cal-legend{font-size:11.5px;color:var(--muted);text-align:center;margin-top:4px;opacity:.8}
+
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;justify-content:flex-end}
+  .btn-tool{background:#fff;border:1.5px solid var(--line);color:var(--ink);padding:8px 13px;font-size:13px;border-radius:10px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;font-family:inherit}
+  .btn-tool:hover{border-color:var(--cobalt);color:var(--cobalt)}
+  .btn-tool:disabled{opacity:.45;cursor:not-allowed}
+  .saved-note{font-size:12px;color:var(--muted);text-align:center;margin-top:24px;line-height:1.6}
+  .saved-note b{color:var(--green)}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(20,33,61,.45);display:none;align-items:flex-start;justify-content:center;padding:20px 14px;z-index:50;overflow-y:auto}
+  .modal-backdrop.open{display:flex}
+  .modal{background:var(--surface);border-radius:16px;box-shadow:0 24px 64px rgba(20,33,61,.32);width:100%;max-width:480px;margin-top:6vh;border-top:3px solid var(--sun)}
+  .modal-head{display:flex;justify-content:space-between;align-items:flex-start;padding:20px 22px 4px}
+  .modal-head .eyebrow{margin-bottom:3px}
+  .modal-head h2{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:22px;margin:0;letter-spacing:-.01em}
+  .m-status{display:none;color:var(--green);font-weight:600;font-size:13px;margin-top:4px}
+  .modal-x{background:#f1f4fa;border:none;width:34px;height:34px;border-radius:9px;font-size:21px;color:var(--muted);cursor:pointer;line-height:1;flex-shrink:0}
+  .modal-x:hover{background:#e7ebf3;color:var(--ink)}
+  .modal-body{padding:14px 22px 22px}
+
+  .sched{background:var(--sun-tint);border:1px solid var(--sun-line);border-radius:12px;padding:13px 15px;display:flex;flex-direction:column;gap:2px;margin-bottom:18px}
+  .sched .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--sun-deep);font-weight:600}
+  .sched .time{font-family:'Space Mono',monospace;font-weight:700;font-size:19px;color:var(--ink)}
+  .sched .gross{font-size:12.5px;color:var(--muted)}
+
+  .field{display:flex;flex-direction:column;gap:5px}
+  label{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+  input{font-family:inherit;font-size:15px;color:var(--ink);background:#fafbfe;border:1.5px solid var(--line);border-radius:9px;padding:10px 11px;width:100%;transition:border-color .12s,box-shadow .12s}
+  input.mono{font-family:'Space Mono',monospace}
+  input:focus{outline:none;border-color:var(--cobalt);box-shadow:0 0 0 3px rgba(43,89,224,.14)}
+  input::placeholder{color:#aab2c2}
+  .field + .field{margin-top:13px}
+  .hint-sm{font-size:11px;color:var(--muted)}
+
+  .net{margin-top:18px;padding:13px 15px;background:#f3f6fc;border-radius:12px;display:flex;align-items:baseline;justify-content:space-between}
+  .net .nlbl{font-size:13px;color:var(--muted);font-weight:500}
+  .net .nval{font-family:'Space Mono',monospace;font-weight:700;font-size:26px;color:var(--cobalt)}
+  .net .nval small{font-size:14px;color:var(--muted)}
+
+  button{cursor:pointer;border:none;border-radius:10px;font-weight:600;font-family:inherit}
+  .m-actions{display:flex;gap:10px;align-items:center;margin-top:18px}
+  .btn-primary{background:var(--cobalt);color:#fff;padding:12px 24px;font-size:15px;transition:background .12s;flex:1}
+  .btn-primary:hover{background:var(--cobalt-dark)}
+  .btn-danger{background:transparent;color:var(--danger);padding:12px 14px;font-size:14px;border:1.5px solid var(--line)}
+  .btn-danger:hover{border-color:var(--danger);background:#fdece8}
+
+  @media (max-width:680px){
+    .chips{margin-left:0;width:100%}
+    .chip{flex:1}
+    .cell{min-height:58px;padding:5px 6px;border-radius:8px}
+    .cell .n{font-size:12px}
+    .cell .h{font-size:12px}
+    .cal-grid,.cal-dow{gap:4px}
+    .cal-nav h2{min-width:130px;font-size:18px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Appleseed · Summer 2026</p>
+    <h1>My Summer Timesheet</h1>
+    <div class="tally">
+      <div class="big">
+        <span class="num" id="totalHours">0<span class="unit">hrs</span></span>
+        <span class="lbl">logged so far this summer</span>
+      </div>
+      <div class="chips">
+        <div class="chip week"><span class="v" id="weekHours">0</span><span class="k">this week</span></div>
+        <div class="chip"><span class="v" id="daysWorked">0</span><span class="k">days worked</span></div>
+        <div class="chip"><span class="v" id="avgDay">0</span><span class="k">avg / day</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="calcard">
+    <div class="cal-head">
+      <div class="cal-nav">
+        <button class="navbtn" id="prevM" aria-label="Previous month">&lsaquo;</button>
+        <h2 id="calMonth">Month</h2>
+        <button class="navbtn" id="nextM" aria-label="Next month">&rsaquo;</button>
+      </div>
+      <div class="cal-meta">
+        <button class="btn-tool" id="todayBtn">Today</button>
+        <span class="month-total"><span id="monthTotal">0</span> h this month</span>
+      </div>
+    </div>
+    <div class="cal-dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+    <div class="cal-grid" id="calGrid"></div>
+    <p class="cal-hint">Tap a day you worked — your shift hours fill in automatically. Just confirm and add any break.</p>
+    <p class="cal-legend">Schedule · Sun 11am–6pm · Mon–Thu 10am–8pm · Fri–Sat 10am–9pm</p>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn-tool" id="exportBtn" disabled>&#8595; Export CSV</button>
+    <button class="btn-tool" id="backupBtn" disabled>&#8682; Backup</button>
+    <button class="btn-tool" id="restoreBtn">&#8681; Restore</button>
+    <input type="file" id="restoreFile" accept=".json,application/json" style="display:none">
+  </div>
+
+  <p class="saved-note">
+    Your hours are saved on this device, private to you. <b>&#9679;</b> Saved<br>
+    To move them to another device, tap <b>Backup</b> here, then <b>Restore</b> the file there.
+  </p>
+</div>
+
+<!-- Day modal -->
+<div class="modal-backdrop" id="dayModal">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <div>
+        <p class="eyebrow">Appleseed</p>
+        <h2 id="m-title">Day</h2>
+        <div class="m-status" id="m-status">&#10003; Logged</div>
+      </div>
+      <button class="modal-x" id="m-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="sched">
+        <span class="lbl">Your shift this day</span>
+        <span class="time" id="m-sched">—</span>
+        <span class="gross" id="m-gross">—</span>
+      </div>
+      <div class="field">
+        <label for="m-break">Break (hours)</label>
+        <input type="number" id="m-break" class="mono" min="0" step="0.25" placeholder="0">
+        <span class="hint-sm">e.g. 0.5 for a half-hour, 1 for an hour</span>
+      </div>
+      <div class="field">
+        <label for="m-notes">Notes (optional)</label>
+        <input type="text" id="m-notes" placeholder="Anything worth remembering">
+      </div>
+      <div class="net">
+        <span class="nlbl">Hours worked this day</span>
+        <span class="nval"><span id="m-net">0</span> <small>h</small></span>
+      </div>
+      <div class="m-actions">
+        <button class="btn-primary" id="m-save">Log this day</button>
+        <button class="btn-danger" id="m-remove" style="display:none">Remove</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY = 'appleseed-timesheet-v1';
+
+/* Fixed weekly schedule (24h internally; shown as AM/PM). Day index: 0=Sun ... 6=Sat */
+const SCHEDULE = {
+  0:{start:'11:00', end:'18:00'},   /* Sunday    11am-6pm */
+  1:{start:'10:00', end:'20:00'},   /* Monday    10am-8pm */
+  2:{start:'10:00', end:'20:00'},   /* Tuesday   10am-8pm */
+  3:{start:'10:00', end:'20:00'},   /* Wednesday 10am-8pm */
+  4:{start:'10:00', end:'20:00'},   /* Thursday  10am-8pm */
+  5:{start:'10:00', end:'21:00'},   /* Friday    10am-9pm */
+  6:{start:'10:00', end:'21:00'}    /* Saturday  10am-9pm */
+};
+
+let entries = [];
+let viewYear, viewMonth;
+let selectedDate = null;
+let curStart = null, curEnd = null;   /* schedule times for the open day */
+
+const $ = id => document.getElementById(id);
+const todayStr = () => new Date().toLocaleDateString('en-CA');
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+/* storage */
+function loadEntries(){ try{ const r=localStorage.getItem(KEY); entries=r?JSON.parse(r):[]; }catch(e){ entries=[]; } }
+function saveEntries(){ try{ localStorage.setItem(KEY, JSON.stringify(entries)); }catch(e){ alert('Couldn\'t save on this device. If you\'re in private browsing, storage may be blocked.'); } }
+
+/* helpers */
+function fmtHrs(n){ return (Math.round(n*100)/100).toString(); }
+function ymd(y,m,d){ return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
+function to12h(hhmm){
+  if(!hhmm) return '';
+  let [h,m]=hhmm.split(':').map(Number);
+  const ap=h>=12?'PM':'AM'; h=h%12; if(h===0) h=12;
+  return h+':'+String(m).padStart(2,'0')+' '+ap;
+}
+function spanHours(start,end){
+  const [sh,sm]=start.split(':').map(Number),[eh,em]=end.split(':').map(Number);
+  let mins=(eh*60+em)-(sh*60+sm); if(mins<=0) mins+=1440;
+  return Math.round((mins/60)*100)/100;
+}
+function weekStartSun(dateStr){ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()-d.getDay()); return d; }
+function dayHours(dateStr){ return entries.filter(e=>e.date===dateStr).reduce((s,e)=>s+e.hours,0); }
+function esc(s){ return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* stats */
+function updateStats(){
+  const total=entries.reduce((s,e)=>s+e.hours,0);
+  $('totalHours').innerHTML=fmtHrs(total)+'<span class="unit">hrs</span>';
+  const nowWk=weekStartSun(todayStr()).getTime();
+  const wk=entries.filter(e=>weekStartSun(e.date).getTime()===nowWk).reduce((s,e)=>s+e.hours,0);
+  $('weekHours').textContent=fmtHrs(wk);
+  const days=new Set(entries.map(e=>e.date)).size;
+  $('daysWorked').textContent=days;
+  $('avgDay').textContent=days?fmtHrs(total/days):'0';
+}
+
+/* calendar */
+function renderCalendar(){
+  $('calMonth').textContent=MONTHS[viewMonth]+' '+viewYear;
+  const firstDow=new Date(viewYear,viewMonth,1).getDay();
+  const daysIn=new Date(viewYear,viewMonth+1,0).getDate();
+  const today=todayStr();
+  let html=''; let monthSum=0;
+  for(let i=0;i<firstDow;i++) html+='<div class="cell blank"></div>';
+  for(let d=1;d<=daysIn;d++){
+    const ds=ymd(viewYear,viewMonth,d);
+    const h=dayHours(ds); monthSum+=h;
+    const cls=['cell']; if(h>0)cls.push('worked'); if(ds===today)cls.push('today');
+    html+='<button class="'+cls.join(' ')+'" data-date="'+ds+'"><span class="n">'+d+'</span>'
+        + (h>0?'<span class="h">'+fmtHrs(h)+' <small>h</small></span>':'')+'</button>';
+  }
+  const trail=(7-((firstDow+daysIn)%7))%7;
+  for(let i=0;i<trail;i++) html+='<div class="cell blank"></div>';
+  $('calGrid').innerHTML=html;
+  $('monthTotal').textContent=fmtHrs(monthSum);
+  $('calGrid').querySelectorAll('[data-date]').forEach(b=>b.onclick=()=>openDay(b.dataset.date));
+  const has=entries.length>0;
+  $('exportBtn').disabled=!has; $('backupBtn').disabled=!has;
+}
+
+/* modal */
+function openDay(ds){
+  selectedDate=ds;
+  const d=new Date(ds+'T00:00:00');
+  const sch=SCHEDULE[d.getDay()];
+  curStart=sch.start; curEnd=sch.end;
+  const gross=spanHours(sch.start,sch.end);
+  $('m-title').textContent=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  $('m-sched').textContent=to12h(sch.start)+' – '+to12h(sch.end);
+  $('m-gross').textContent=fmtHrs(gross)+'h scheduled, before break';
+  const existing=entries.find(e=>e.date===ds);
+  if(existing){
+    $('m-break').value = (existing.breakHrs!=null && existing.breakHrs!==0) ? existing.breakHrs : (existing.breakHrs===0?'0':'');
+    $('m-notes').value = existing.notes||'';
+    $('m-save').textContent='Save changes';
+    $('m-remove').style.display='inline-block';
+    $('m-status').style.display='block';
+  } else {
+    $('m-break').value=''; $('m-notes').value='';
+    $('m-save').textContent='Log this day';
+    $('m-remove').style.display='none';
+    $('m-status').style.display='none';
+  }
+  updateNet();
+  $('dayModal').classList.add('open');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>$('m-break').focus(),50);
+}
+function closeDay(){ $('dayModal').classList.remove('open'); document.body.style.overflow=''; selectedDate=null; }
+function updateNet(){
+  const gross=spanHours(curStart,curEnd);
+  const brk=parseFloat($('m-break').value)||0;
+  const net=Math.max(0, Math.round((gross-brk)*100)/100);
+  $('m-net').textContent=fmtHrs(net);
+}
+function saveDay(){
+  const gross=spanHours(curStart,curEnd);
+  const brk=Math.max(0, parseFloat($('m-break').value)||0);
+  const net=Math.max(0, Math.round((gross-brk)*100)/100);
+  entries=entries.filter(e=>e.date!==selectedDate);
+  entries.push({
+    id:selectedDate, date:selectedDate, project:'Appleseed',
+    start:curStart, end:curEnd, breakHrs:brk, hours:net,
+    notes:$('m-notes').value.trim()
+  });
+  saveEntries(); renderCalendar(); updateStats(); closeDay();
+}
+function removeDay(){
+  if(!confirm('Remove this day from your log?')) return;
+  entries=entries.filter(e=>e.date!==selectedDate);
+  saveEntries(); renderCalendar(); updateStats(); closeDay();
+}
+
+/* CSV export (12-hour times, break in hours) */
+function exportCsv(){
+  const rows=[['Date','Job/Task','Start','End','Break (hrs)','Hours','Notes']];
+  entries.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+    rows.push([e.date,'Appleseed', to12h(e.start), to12h(e.end), e.breakHrs||0, e.hours, e.notes||'']);
+  });
+  const total=entries.reduce((s,e)=>s+e.hours,0);
+  rows.push([]); rows.push(['','','','','','Total',fmtHrs(total)]);
+  const csv=rows.map(r=>r.map(c=>{const v=String(c);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(',')).join('\n');
+  download(new Blob([csv],{type:'text/csv'}),'appleseed-hours.csv');
+}
+/* backup / restore */
+function backup(){ download(new Blob([JSON.stringify(entries,null,2)],{type:'application/json'}),'appleseed-hours-backup.json'); }
+function handleRestore(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const incoming=JSON.parse(reader.result);
+      if(!Array.isArray(incoming)) throw new Error('bad');
+      const seen=new Set(entries.map(x=>x.id)); let added=0;
+      incoming.forEach(x=>{ if(x&&x.id&&typeof x.hours==='number'&&!seen.has(x.id)){ entries.push(x); seen.add(x.id); added++; } });
+      saveEntries(); renderCalendar(); updateStats();
+      alert('Restored '+added+' day'+(added===1?'':'s')+'. (Duplicates were skipped.)');
+    }catch(err){ alert('That file doesn\'t look like a timesheet backup.'); }
+    $('restoreFile').value='';
+  };
+  reader.readAsText(file);
+}
+function download(blob,name){ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url); }
+
+/* wiring */
+$('m-break').addEventListener('input', updateNet);
+$('m-save').addEventListener('click', saveDay);
+$('m-remove').addEventListener('click', removeDay);
+$('m-close').addEventListener('click', closeDay);
+$('dayModal').addEventListener('click', e=>{ if(e.target===$('dayModal')) closeDay(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && $('dayModal').classList.contains('open')) closeDay(); });
+$('prevM').addEventListener('click', ()=>{ viewMonth--; if(viewMonth<0){viewMonth=11;viewYear--;} renderCalendar(); });
+$('nextM').addEventListener('click', ()=>{ viewMonth++; if(viewMonth>11){viewMonth=0;viewYear++;} renderCalendar(); });
+$('todayBtn').addEventListener('click', ()=>{ const n=new Date(); viewYear=n.getFullYear(); viewMonth=n.getMonth(); renderCalendar(); });
+$('exportBtn').addEventListener('click', exportCsv);
+$('backupBtn').addEventListener('click', backup);
+$('restoreBtn').addEventListener('click', ()=>$('restoreFile').click());
+$('restoreFile').addEventListener('change', e=>{ if(e.target.files[0]) handleRestore(e.target.files[0]); });
+
+/* init */
+(function(){ const n=new Date(); viewYear=n.getFullYear(); viewMonth=n.getMonth(); loadEntries(); renderCalendar(); updateStats(); })();
+</script>
+</body>
+</html>
